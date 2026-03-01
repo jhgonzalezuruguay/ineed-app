@@ -23,12 +23,7 @@ library(scales)
 # 1. CARGA DE DATOS (ROBUSTA)
 #-----------------------------------------------------------
 
-datos_raw <- fread(
-  "Datos_Estudiante_ITEMS_MAT.csv",
-  sep = ";",
-  encoding = "Latin-1",
-  data.table = FALSE
-)
+datos_modelo <- read.csv("datos_liviano.csv")
 
 datos_modelo <- datos_raw %>%
   select(
