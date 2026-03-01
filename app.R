@@ -23,18 +23,18 @@ library(scales)
 # 1. CARGA DE DATOS (ROBUSTA)
 #-----------------------------------------------------------
 
-datos_modelo <- read.csv("datos_liviano.csv")
+# Definir datos_raw directamente desde el CSV
+datos_raw <- read.csv("datos_liviano.csv")
 
 datos_modelo <- datos_raw %>%
   select(
-    Puntaje_Mat = theta_MAT_300_50,
-    INSE_est = INSE,
-    Codigo_Centro = CentroCodigoDes,
-    Region = regiones,
-    ESCS_Centro = ESCS_Centro
+    Puntaje_Mat,
+    INSE_est,
+    Codigo_Centro,
+    Region,
+    ESCS_Centro
   ) %>%
   drop_na()
-
 datos_modelo$Codigo_Centro <- as.factor(datos_modelo$Codigo_Centro)
 datos_modelo$INSE_c <- scale(datos_modelo$INSE_est,
                              center = TRUE,
