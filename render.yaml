@@ -3,5 +3,14 @@ services:
     name: ineed-aristas-app
     env: r
     buildCommand: |
-      R -e "install.packages(c('shiny','dplyr','tidyr','ggplot2','plotly','sf','lme4','lmerTest','performance','rnaturalearth','rnaturalearthdata','stringi'), repos='https://cloud.r-project.org')"
+      apt-get update && apt-get install -y \
+      libgdal-dev libgeos-dev libproj-dev libudunits2-dev
+      
+      R -e "install.packages(c(
+      'shiny','dplyr','tidyr','ggplot2','plotly',
+      'sf','lme4','lmerTest','performance',
+      'rnaturalearth','rnaturalearthdata',
+      'stringi','data.table'
+      ), repos='https://cloud.r-project.org')"
+      
     startCommand: R -e "shiny::runApp(host='0.0.0.0', port=as.numeric(Sys.getenv('PORT')))"
