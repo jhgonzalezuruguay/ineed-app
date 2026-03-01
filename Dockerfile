@@ -8,12 +8,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar paquetes R
-RUN R -e "install.packages(c('shinydashboard',
-      'dplyr',
-      'tidyr',
-      'data.table',
-      'lme4',
-      'lmerTest',
+RUN R -e "install.packages(c('shinydashboard','dplyr','tidyr','data.table','lme4','lmerTest',
       'performance',
       'ggplot2',
       'plotly',
