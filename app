@@ -53,7 +53,7 @@ ui <- dashboardPage(
   
   skin = "blue",
   
-  dashboardHeader(title = "Aristas 2022 – INEEd"),
+  dashboardHeader(title = "Aristas 2022 – Mag. José González"),
   
   dashboardSidebar(
     sidebarMenu(
