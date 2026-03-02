@@ -26,7 +26,7 @@ datos_modelo <- datos_raw %>%
     Region,
     ESCS_Centro
   ) %>%
-  drop_na()
+  na.omit()
 
 datos_modelo$Codigo_Centro <- as.factor(datos_modelo$Codigo_Centro)
 
