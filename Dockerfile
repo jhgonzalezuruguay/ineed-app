@@ -1,6 +1,6 @@
 FROM rocker/shiny:4.3.1
 
-# Instalar dependencias del sistema necesarias para sf, lme4, etc.
+# Dependencias del sistema completas para sf, terra, lme4
 RUN apt-get update && apt-get install -y \
     libudunits2-dev \
     libgdal-dev \
@@ -10,8 +10,13 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libssl-dev \
     libxml2-dev \
+    libnlopt-dev \
+    libprotobuf-dev \
+    protobuf-compiler \
+    libabsl-dev \
     build-essential \
     gfortran \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar paquetes R
@@ -33,12 +38,8 @@ RUN R -e "install.packages(c( \
 'scales' \
 ), repos='https://cloud.r-project.org/')"
 
-# Copiar archivos de la app
 COPY . /srv/shiny-server/
-
-# Permisos
 RUN chown -R shiny:shiny /srv/shiny-server
 
 EXPOSE 3838
-
 CMD ["/usr/bin/shiny-server"]
