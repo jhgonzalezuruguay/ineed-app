@@ -1,29 +1,21 @@
 ############################################################
-# APP SHINY PREMIUM – ARISTAS MEDIA 2022
-# INEEd – Uruguay
+# APP SHINY – ARISTAS MEDIA 2022 (VERSIÓN LIGERA CORRECTA)
 ############################################################
 
 library(shiny)
 library(shinydashboard)
 library(dplyr)
-library(tidyr)
-library(data.table)
 library(lme4)
 library(lmerTest)
 library(performance)
 library(ggplot2)
 library(plotly)
-library(sf)
-library(rnaturalearth)
-library(rnaturalearthdata)
-library(DT)
 library(scales)
 
 #-----------------------------------------------------------
-# 1. CARGA DE DATOS (ROBUSTA)
+# 1. DATOS
 #-----------------------------------------------------------
 
-# Definir datos_raw directamente desde el CSV
 datos_raw <- read.csv("datos_liviano.csv")
 
 datos_modelo <- datos_raw %>%
@@ -35,17 +27,22 @@ datos_modelo <- datos_raw %>%
     ESCS_Centro
   ) %>%
   drop_na()
+
 datos_modelo$Codigo_Centro <- as.factor(datos_modelo$Codigo_Centro)
-datos_modelo$INSE_c <- scale(datos_modelo$INSE_est,
-                             center = TRUE,
-                             scale = FALSE)
+
+datos_modelo$INSE_c <- scale(
+  datos_modelo$INSE_est,
+  center = TRUE,
+  scale = FALSE
+)
+
+regiones_totales <- sort(unique(datos_modelo$Region))
 
 #-----------------------------------------------------------
 # 2. UI
 #-----------------------------------------------------------
 
 ui <- dashboardPage(
-  
   skin = "blue",
   
   dashboardHeader(title = "Aristas 2022 – Mag. José González"),
@@ -54,34 +51,21 @@ ui <- dashboardPage(
     sidebarMenu(
       menuItem("Panel General", tabName = "panel", icon = icon("chart-line")),
       menuItem("Modelo Multinivel", tabName = "modelo", icon = icon("project-diagram")),
-      menuItem("Mapa Territorial", tabName = "mapa", icon = icon("globe"))
+      menuItem("Análisis Regional", tabName = "regional", icon = icon("globe"))
     ),
     
     br(),
     
     selectInput("region",
                 "Filtrar por Región:",
-                choices = c("Todas", sort(unique(datos_modelo$Region))),
+                choices = c("Todas", regiones_totales),
                 selected = "Todas")
   ),
   
   dashboardBody(
-    
-    tags$head(tags$style(HTML("
-      .content-wrapper, .right-side {
-        background-color: #F4F6F9;
-      }
-      .box {
-        border-top: 3px solid #2C7FB8;
-      }
-    "))),
-    
     tabItems(
       
-      #---------------------------------------------------
       # PANEL GENERAL
-      #---------------------------------------------------
-      
       tabItem(tabName = "panel",
               
               fluidRow(
@@ -108,10 +92,7 @@ ui <- dashboardPage(
               )
       ),
       
-      #---------------------------------------------------
       # MODELO
-      #---------------------------------------------------
-      
       tabItem(tabName = "modelo",
               
               fluidRow(
@@ -131,17 +112,14 @@ ui <- dashboardPage(
               )
       ),
       
-      #---------------------------------------------------
-      # MAPA
-      #---------------------------------------------------
-      
-      tabItem(tabName = "mapa",
+      # ANALISIS REGIONAL
+      tabItem(tabName = "regional",
               fluidRow(
                 box(width = 12,
-                    title = "Mapa Territorial – Puntaje Promedio",
+                    title = "Puntaje Promedio por Macro-Región",
                     status = "primary",
                     solidHeader = TRUE,
-                    plotlyOutput("mapa_plot", height = "600px"))
+                    plotlyOutput("regional_plot", height = "600px"))
               )
       )
     )
@@ -154,26 +132,14 @@ ui <- dashboardPage(
 
 server <- function(input, output) {
   
-  # FILTRO REACTIVO
   datos_filtrados <- reactive({
-    
-    df <- datos_modelo   # usamos siempre el dataset limpio
-    
-    if(input$region != "Todas"){
-      df <- df %>% filter(Region == input$region)
+    if(input$region == "Todas"){
+      datos_modelo
+    } else {
+      datos_modelo %>% filter(Region == input$region)
     }
-    
-    # Si existe slider INSE
-    if(!is.null(input$inse)){
-      df <- df %>% 
-        filter(INSE_est >= input$inse[1],
-               INSE_est <= input$inse[2])
-    }
-    
-    df
   })
   
-  # MODELO REACTIVO
   modelo_final <- reactive({
     lmer(
       Puntaje_Mat ~ INSE_c + ESCS_Centro +
@@ -183,13 +149,10 @@ server <- function(input, output) {
     )
   })
   
-  
-  # r cuadrado
   r2_vals <- reactive({
     performance::r2(modelo_final())
   })
   
-  # ICC dinámico
   icc_val <- reactive({
     var_comp <- as.data.frame(VarCorr(modelo_final()))
     var_entre <- var_comp$vcov[1]
@@ -198,6 +161,7 @@ server <- function(input, output) {
   })
   
   # VALUE BOXES
+  
   output$vb_n <- renderValueBox({
     valueBox(nrow(datos_filtrados()),
              "Estudiantes",
@@ -226,57 +190,100 @@ server <- function(input, output) {
              color = "purple")
   })
   
-  # HISTOGRAMA INTERACTIVO
+  output$vb_r2m <- renderValueBox({
+    valueBox(round(r2_vals()$R2_marginal,3),
+             "R² Marginal",
+             icon = icon("chart-line"),
+             color = "teal")
+  })
+  
+  output$vb_r2c <- renderValueBox({
+    valueBox(round(r2_vals()$R2_conditional,3),
+             "R² Condicional",
+             icon = icon("layer-group"),
+             color = "green")
+  })
+  
+  # HISTOGRAMA ORIGINAL CON COLORES
+  
   output$histograma <- renderPlotly({
     
-    media_val <- mean(datos_filtrados()$Puntaje_Mat, na.rm = TRUE)
+    media_val <- mean(datos_filtrados()$Puntaje_Mat)
     
     p <- ggplot(datos_filtrados(),
                 aes(x = Puntaje_Mat)) +
       
       geom_histogram(
-        aes(y = after_stat(density)),
+        aes(
+          text = paste(
+            "Intervalo:",
+            round(after_stat(x),1),
+            "<br>Frecuencia:",
+            round(after_stat(count),1)
+          )
+        ),
         bins = 30,
         fill = "#2C7FB8",
-        color = "white",
-        alpha = 0.85
-      ) +
-      
-      geom_density(
-        color = "#08306B",
-        linewidth = 1.2
+        color = "white"
       ) +
       
       geom_vline(
-        xintercept = media_val,
+        aes(
+          xintercept = media_val,
+          text = paste("Media:", round(media_val,1))
+        ),
         color = "#CB181D",
-        linewidth = 1.2,
-        linetype = "dashed"
-      ) +
-      
-      annotate(
-        "text",
-        x = media_val,
-        y = Inf,
-        label = paste("Media =", round(media_val,1)),
-        vjust = 2,
-        hjust = -0.1,
-        color = "#CB181D",
-        size = 4
+        linetype = "dashed",
+        linewidth = 1
       ) +
       
       labs(
-        x = "Puntaje (Media 300, DE 50)",
-        y = "Densidad"
+        x = "Puntaje",
+        y = "Frecuencia"
       ) +
       
-      theme_minimal(base_size = 14)
+      theme_minimal()
     
-    ggplotly(p)
+    ggplotly(p, tooltip = "text") %>%
+      layout(
+        xaxis = list(title = "Puntaje"),
+        yaxis = list(title = "Frecuencia")
+      )
   })
+  #output$histograma <- renderPlotly({
+    
+  #   media_val <- mean(datos_filtrados()$Puntaje_Mat)
+    
+  #  p <- ggplot(datos_filtrados(),
+  #             aes(x = Puntaje_Mat)) +
+  #   geom_histogram(
+  #     bins = 30,
+  #     fill = "#2C7FB8",
+  #     color = "white"
+  #   ) +
+  #   geom_vline(
+  #     xintercept = media_val,
+  #     linetype = "dashed",
+  #     linewidth = 1
+  #   ) +
+  #   labs(
+  #     x = "Puntaje",
+  #     y = "Frecuencia"
+  #   ) +
+  #   theme_minimal()
+    
+  # ggplotly(p) %>%
+  #   layout(
+  #     xaxis = list(title = "Puntaje"),
+  #     yaxis = list(title = "Frecuencia"),
+  #     hoverlabel = list(font = list(family = "Arial"))
+  #   )
+  #})
   
-  # BOXPLOT INTERACTIVO
+  
+  #box
   output$box_region <- renderPlotly({
+    
     p <- ggplot(datos_filtrados(),
                 aes(x = Region,
                     y = Puntaje_Mat,
@@ -285,38 +292,43 @@ server <- function(input, output) {
       theme_minimal() +
       theme(legend.position = "none")
     
-    ggplotly(p)
+    ggplotly(p) %>%
+      style(
+        hovertemplate = paste(
+          "<b>Región:</b> %{x}<br>",
+          "<b>Puntaje:</b> %{y:.1f}",
+          "<extra></extra>"
+        )
+      )
   })
   
+
+
   # RESUMEN LIMPIO SIN ENVIRONMENT
   output$modelo_resumen <- renderPrint({
     cat("Modelo estimado:\n\n")
     print(formula(modelo_final()))
     cat("\n\n")
     print(summary(modelo_final()), correlation = FALSE)
-  })
+  }) 
+   
+  # EFECTOS ALEATORIOS CORRECTOS 25-25-25
   
-  # EFECTOS ALEATORIOS INTERACTIVOS
   output$efectos_plot <- renderPlotly({
     
     efectos <- ranef(modelo_final())$Codigo_Centro %>%
       as.data.frame()
     
-    efectos$Centro <- rownames(ranef(modelo_final())$Codigo_Centro)
+    efectos$Centro <- rownames(efectos)
     colnames(efectos)[1] <- "Intercepto"
     
-    # Ordenar por efecto
     efectos <- efectos %>% arrange(Intercepto)
     
     n <- 25
     
-    # 25 menores
     extremos_min <- head(efectos, n)
-    
-    # 25 mayores
     extremos_max <- tail(efectos, n)
     
-    # 25 cercanos a 0
     cercanos_cero <- efectos %>%
       mutate(dist0 = abs(Intercepto)) %>%
       arrange(dist0) %>%
@@ -330,7 +342,6 @@ server <- function(input, output) {
       distinct(Centro, .keep_all = TRUE) %>%
       arrange(Intercepto)
     
-    # Factor ordenado (IMPORTANTE para eje X)
     efectos_sel$Centro <- factor(
       efectos_sel$Centro,
       levels = efectos_sel$Centro
@@ -340,10 +351,8 @@ server <- function(input, output) {
                 aes(x = Centro,
                     y = Intercepto,
                     color = Intercepto > 0,
-                    text = paste(
-                      "Centro:", Centro,
-                      "<br>Desvío:", round(Intercepto,2)
-                    ))) +
+                    text = paste("Centro:", Centro,
+                                 "<br>Desvío:", round(Intercepto,2)))) +
       geom_point(size = 3) +
       geom_hline(yintercept = 0,
                  linetype = "dashed",
@@ -351,8 +360,7 @@ server <- function(input, output) {
       scale_color_manual(values = c("#CB181D", "#08519C")) +
       labs(
         x = "Centros seleccionados",
-        y = "Desviación del intercepto",
-        color = "Sobre promedio"
+        y = "Desviación del intercepto"
       ) +
       theme_minimal(base_size = 12) +
       theme(
@@ -368,43 +376,42 @@ server <- function(input, output) {
     ggplotly(p, tooltip = "text")
   })
   
-  # MAPA TERRITORIAL
-  output$mapa_plot <- renderPlotly({
-    
-    uruguay <- ne_countries(scale = "medium",
-                            country = "Uruguay",
-                            returnclass = "sf")
+  # REGIONAL SIEMPRE COMPLETO
+  
+  output$regional_plot <- renderPlotly({
     
     datos_region <- datos_filtrados() %>%
       group_by(Region) %>%
-      summarise(Puntaje = mean(Puntaje_Mat))
+      summarise(Puntaje = mean(Puntaje_Mat)) %>%
+      right_join(
+        data.frame(Region = regiones_totales),
+        by = "Region"
+      ) %>%
+      arrange(Region)
     
-    uruguay$Puntaje <- mean(datos_region$Puntaje)
-    
-    p <- ggplot(uruguay) +
-      geom_sf(aes(fill = Puntaje)) +
-      scale_fill_viridis_c() +
-      theme_minimal()
-    
-    ggplotly(p)
-  })
-  
-  output$vb_r2m <- renderValueBox({
-    valueBox(
-      round(r2_vals()$R2_marginal, 3),
-      "R² Marginal",
-      icon = icon("chart-line"),
-      color = "teal"
-    )
-  })
-  
-  output$vb_r2c <- renderValueBox({
-    valueBox(
-      round(r2_vals()$R2_conditional, 3),
-      "R² Condicional",
-      icon = icon("layer-group"),
-      color = "green"
-    )
+    plot_ly(
+      datos_region,
+      x = ~Region,
+      y = ~Puntaje,
+      type = "bar",
+      color = ~Region,   # <-- color distinto por región
+      colors = c(
+        "#08306B",  # azul oscuro
+        "pink",  # azul medio
+        "#2C7FB8",  # azul institucional
+        "red",  # celeste
+        "#7FCDBB"   # verde azulado
+      ),
+      hovertemplate = paste(
+        "<b>Región:</b> %{x}<br>",
+        "<b>Puntaje Promedio:</b> %{y:.1f}<extra></extra>"
+      )
+    ) %>%
+      layout(
+        xaxis = list(title = "Macro-Región"),
+        yaxis = list(title = "Puntaje Promedio"),
+        showlegend = FALSE
+      )
   })
 }
 
