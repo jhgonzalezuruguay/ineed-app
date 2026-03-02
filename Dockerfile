@@ -1,13 +1,21 @@
 FROM rocker/r-ver:4.3.1
 
+# Instalar dependencias del sistema necesarias
 RUN apt-get update && apt-get install -y \
+    build-essential \
+    gfortran \
+    g++ \
+    cmake \
     libcurl4-openssl-dev \
     libssl-dev \
     libxml2-dev \
     libnlopt-dev \
-    build-essential \
+    libglpk-dev \
+    liblapack-dev \
+    libblas-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Instalar paquetes R
 RUN R -e "install.packages(c( \
     'shiny', \
     'shinydashboard', \
@@ -21,7 +29,7 @@ RUN R -e "install.packages(c( \
     'plotly', \
     'DT', \
     'scales' \
-    ), repos='https://cloud.r-project.org')"
+    ), repos='https://cloud.r-project.org', Ncpus=2)"
 
 WORKDIR /app
 COPY . /app
