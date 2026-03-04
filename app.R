@@ -105,7 +105,7 @@ ui <- dashboardPage(
               actionButton("ver_estudio",
                            "Ver Investigación Académica",
                            icon = icon("external-link-alt"),
-                           style = "background-color:#2C7FB8; color:white;"),
+                           style = "background-color:red; color:white;"),
               br(),br(),
               
               fluidRow(
