@@ -76,7 +76,23 @@ ui <- dashboardPage(
                 valueBoxOutput("vb_r2m", width = 2),
                 valueBoxOutput("vb_r2c", width = 2)
               ),
-              
+              br(),br(),
+              tags$a(
+                href = "https://www.researchgate.net/publication/388192589_Investigacion_Educativa",
+                target = "_blank",
+                class = "btn",
+                style = "
+    background-color:#CB181D;
+    color:white;
+    border:none;
+    font-weight:bold;
+    padding:10px 18px;
+    font-size:16px;
+  ",
+                icon("external-link-alt"),
+                " Ver Investigación Académica"
+              ),
+              br(),br(),br(),
               fluidRow(
                 box(width = 6,
                     title = "Distribución Puntaje Matemática",
