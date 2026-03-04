@@ -102,6 +102,11 @@ ui <- dashboardPage(
                     solidHeader = TRUE,
                     verbatimTextOutput("modelo_resumen"))
               ),
+              actionButton("ver_estudio",
+                           "Ver Investigación Académica",
+                           icon = icon("external-link-alt"),
+                           style = "background-color:#2C7FB8; color:white;"),
+              br(),br(),
               
               fluidRow(
                 box(width = 12,
@@ -412,6 +417,9 @@ server <- function(input, output) {
         yaxis = list(title = "Puntaje Promedio"),
         showlegend = FALSE
       )
+  })
+    observeEvent(input$ver_estudio, {
+    browseURL("https://www.researchgate.net/publication/388192589_Investigacion_Educativa")
   })
 }
 
