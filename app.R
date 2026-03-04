@@ -102,10 +102,21 @@ ui <- dashboardPage(
                     solidHeader = TRUE,
                     verbatimTextOutput("modelo_resumen"))
               ),
-              actionButton("ver_estudio",
-                           "Ver Investigación Académica",
-                           icon = icon("external-link-alt"),
-                           style = "background-color:red; color:white;"),
+              tags$a(
+  href = "https://www.researchgate.net/publication/388192589_Investigacion_Educativa",
+  target = "_blank",
+  class = "btn",
+  style = "
+    background-color:#CB181D;
+    color:white;
+    border:none;
+    font-weight:bold;
+    padding:10px 18px;
+    font-size:16px;
+  ",
+  icon("external-link-alt"),
+  " Ver Investigación Académica"
+),
               br(),br(),
               
               fluidRow(
